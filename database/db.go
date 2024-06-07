@@ -61,6 +61,14 @@ type Goods struct {
 	Price float32 `gorm:"not null" json:"price"`
 }
 
+// 订单
+type Order struct {
+	Base
+	State    int  `gorm:"not null" json:"state"`
+	Goods    uint `gorm:"not null" json:"goods_id"`
+	Receiver uint `gorm:"not null" json:"receiver_id"`
+}
+
 func Init() {
 	dsn := config.Config.Dsn
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
@@ -70,7 +78,7 @@ func Init() {
 	DB = db
 
 	err = db.AutoMigrate(
-		&User{}, &Image{}, &Goods{},
+		&User{}, &Image{}, &Goods{}, &Order{},
 	)
 	if err != nil {
 		panic(err)

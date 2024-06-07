@@ -71,7 +71,7 @@ func GoodsPost(c *gin.Context) {
 }
 
 // 修改商品请求接口
-type PaperPutQeury struct {
+type GoodsPutQeury struct {
 	Type  int     `json:"type"`
 	Title string  `json:"title"`
 	Intro string  `json:"intro"`
@@ -81,7 +81,7 @@ type PaperPutQeury struct {
 
 // 修改商品
 func GoodsPut(c *gin.Context) {
-	var query PaperPutQeury
+	var query GoodsPutQeury
 	if err := c.ShouldBind(&query); err != nil {
 		c.JSON(400, gin.H{"msg": "参数错误awa"})
 		return
