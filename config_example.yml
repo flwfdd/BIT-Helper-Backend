@@ -1,0 +1,20 @@
+port: 8080 #启动端口
+key: "BIT101" #加密密钥
+login_expire: 2073600 #登录有效期 单位秒
+dsn: "user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local" #数据库源
+saver: #文件保存相关
+  max_size: 24 #最大上传大小 单位MB
+  url: "https://bit101-test-1255944436.cos.ap-beijing.myqcloud.com/bit_helper/"
+  image_url_suffix: "!low"
+  local:
+    enable: true
+    path: "./data/"
+  cos:
+    enable: true
+    secret_id: ""
+    secret_key: ""
+    region: "ap-beijing"
+    bucket: "bit101-test-1255944436"
+    path: "/bit_helper/"
+default_avatar: "e2e4437695e019484769bc807948dad8.jpeg" #默认头像
+release_mode: false #是否为部署模式 开启后不显示DEBUG信息
