@@ -19,6 +19,15 @@ func SetRouter(router *gin.Engine) {
 		user.GET("/info/:id", middleware.CheckLogin(false), controller.UserGetInfo)
 		user.PUT("/info", middleware.CheckLogin(true), controller.UserSetInfo)
 	}
+	// 商品模块
+	goods := router.Group("/goods")
+	{
+		goods.GET("", controller.GoodsList)
+		goods.POST("", middleware.CheckLogin(true), controller.GoodsPost)
+		goods.GET("/:id", controller.GoodsGet)
+		goods.PUT("/:id", middleware.CheckLogin(true), controller.GoodsPut)
+		goods.DELETE("/:id", middleware.CheckLogin(true), controller.GoodsDelete)
+	}
 	// 上传模块
 	upload := router.Group("/upload")
 	{

@@ -1,7 +1,7 @@
 /*
  * @Author: flwfdd
  * @Date: 2024-06-06 16:42:56
- * @LastEditTime: 2024-06-06 21:59:43
+ * @LastEditTime: 2024-06-07 12:11:19
  * @Description:
  * _(:з」∠)_
  */
@@ -53,12 +53,12 @@ type Image struct {
 // 商品
 type Goods struct {
 	Base
-	Type  int    `gorm:"not null" json:"type"`
-	Uid   uint   `gorm:"not null" json:"uid"`
-	Title string `gorm:"not null" json:"title"`
-	Intro string `gorm:"not null" json:"intro"`
-	Num   int    `gorm:"not null" json:"num"`
-	Price int    `gorm:"not null" json:"price"`
+	Type  int     `gorm:"not null" json:"type"`
+	Uid   uint    `gorm:"not null" json:"uid"`
+	Title string  `gorm:"not null" json:"title"`
+	Intro string  `gorm:"not null" json:"intro"`
+	Num   int     `gorm:"not null" json:"num"`
+	Price float32 `gorm:"not null" json:"price"`
 }
 
 func Init() {

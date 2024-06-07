@@ -1,7 +1,7 @@
 /*
  * @Author: flwfdd
  * @Date: 2024-06-06 15:59:19
- * @LastEditTime: 2024-06-06 22:19:28
+ * @LastEditTime: 2024-06-07 12:27:10
  * @Description:
  * _(:з」∠)_
  */
@@ -37,6 +37,7 @@ var Config = struct {
 		}
 	}
 	DefaultAvatar string `yaml:"default_avatar"`
+	PageSize      int    `yaml:"page_size"`
 	ReleaseMode   bool   `yaml:"release_mode"`
 }{}
 
