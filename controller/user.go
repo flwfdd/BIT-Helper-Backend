@@ -80,8 +80,6 @@ func UserLogin(c *gin.Context) {
 		c.JSON(500, gin.H{"msg": "密码加密失败Orz"})
 		return
 	}
-	fmt.Printf("sid: %s, password: %s\n", query.Sid, encryptedPassword)
-	fmt.Printf("execution: %s, cookie: %s\n", data.Execution, data.Cookie)
 	err = webvpn.Login(query.Sid, encryptedPassword, data.Execution, data.Cookie, "")
 	if err != nil {
 		c.JSON(500, gin.H{"msg": "统一身份认证失败Orz"})

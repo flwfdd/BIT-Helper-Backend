@@ -1,7 +1,7 @@
 /*
  * @Author: flwfdd
  * @Date: 2024-06-06 17:17:14
- * @LastEditTime: 2024-06-06 21:50:36
+ * @LastEditTime: 2024-06-07 11:48:21
  * @Description:
  * _(:з」∠)_
  */
@@ -11,7 +11,6 @@ import (
 	"BIT-Helper/util/request"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -28,7 +27,7 @@ type InitLoginReturn struct {
 
 // 登录初始化
 func InitLogin() (InitLoginReturn, error) {
-	res, err := request.Post("https://webvpn.bit.edu.cn/https/77726476706e69737468656265737421fcf84695297e6a596a468ca88d1b203b/authserver/login?service=https%3A%2F%2Fwebvpn.bit.edu.cn%2Flogin%3Fcas_login%3Dtrue", nil)
+	res, err := request.Post("http://login.bit.edu.cn/authserver/login", nil)
 	if err != nil || res.Code != 200 {
 		return InitLoginReturn{}, errors.New("webvpn init login error")
 	}
@@ -54,7 +53,7 @@ func InitLogin() (InitLoginReturn, error) {
 
 // 登录
 func Login(username string, password string, execution string, cookie string, captcha string) error {
-	res, err := request.PostForm("https://webvpn.bit.edu.cn/https/77726476706e69737468656265737421fcf84695297e6a596a468ca88d1b203b/authserver/login?service=https%3A%2F%2Fwebvpn.bit.edu.cn%2Flogin%3Fcas_login%3Dtrue", map[string]string{
+	res, err := request.PostForm("https://login.bit.edu.cn/authserver/login", map[string]string{
 		"username":   username,
 		"password":   password,
 		"execution":  execution,
@@ -66,9 +65,6 @@ func Login(username string, password string, execution string, cookie string, ca
 		"lt":         "",
 	}, map[string]string{"Cookie": cookie})
 	if err != nil || res.Code != 200 || strings.Contains(res.Text, "帐号登录或动态码登录") {
-		fmt.Println(err)
-		fmt.Println(res.Code)
-		fmt.Println(res.Text)
 		return errors.New("webvpn login error")
 	}
 	return nil
@@ -76,7 +72,7 @@ func Login(username string, password string, execution string, cookie string, ca
 
 // 是否需要验证码
 func NeedCaptcha(username string) (bool, error) {
-	res, err := request.Get("https://webvpn.bit.edu.cn/https/77726476706e69737468656265737421fcf84695297e6a596a468ca88d1b203b/authserver/checkNeedCaptcha.htl?username="+username, nil)
+	res, err := request.Get("https://login.bit.edu.cn/authserver/checkNeedCaptcha.htl?username="+username, nil)
 	if err != nil || res.Code != 200 {
 		return false, errors.New("webvpn need captcha error")
 	}
@@ -92,7 +88,7 @@ func NeedCaptcha(username string) (bool, error) {
 
 // 获取验证码图片
 func CaptchaImage(cookie string) ([]byte, error) {
-	res, err := request.Get("https://webvpn.bit.edu.cn/https/77726476706e69737468656265737421fcf84695297e6a596a468ca88d1b203b/authserver/getCaptcha.htl", map[string]string{"Cookie": cookie})
+	res, err := request.Get("https://login.bit.edu.cn/authserver/getCaptcha.htl", map[string]string{"Cookie": cookie})
 	if err != nil || res.Code != 200 {
 		return nil, errors.New("webvpn captcha image error")
 	}

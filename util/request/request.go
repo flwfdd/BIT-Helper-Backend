@@ -1,7 +1,7 @@
 /*
  * @Author: flwfdd
  * @Date: 2024-06-06 17:18:15
- * @LastEditTime: 2024-06-06 17:18:22
+ * @LastEditTime: 2024-06-07 11:46:14
  * @Description: 封装的网络请求工具包
  * _(:з」∠)_
  */
@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	net_url "net/url"
 	"strings"
 )
@@ -28,7 +29,20 @@ func request(request_type string, url string, headers map[string]string, request
 		req.Header.Set(k, v)
 	}
 
-	res, err := http.DefaultClient.Do(req)
+	jar, _ := cookiejar.New(nil)
+	client := &http.Client{
+		Jar: jar,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) > 0 {
+				for _, cookie := range via[len(via)-1].Cookies() {
+					req.AddCookie(cookie)
+				}
+			}
+			return nil
+		},
+	}
+
+	res, err := client.Do(req)
 	if err != nil {
 		return Response{}, err
 	}
