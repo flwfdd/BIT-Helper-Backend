@@ -53,7 +53,7 @@ func OrderList(c *gin.Context) {
 	var orders []database.Order
 	q := database.DB
 	q = q.Where("state = ?", query.State)
-	if err := q.Offset(query.Page * config.Config.PageSize).Limit(config.Config.PageSize).Find(&orders).Error; err != nil {
+	if err := q.Offset(query.Page * config.Config.PageSize).Limit(config.Config.PageSize).Order("updated_at DESC").Find(&orders).Error; err != nil {
 		c.JSON(500, gin.H{"msg": "数据库错误Orz"})
 		return
 	}
