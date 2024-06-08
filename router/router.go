@@ -37,6 +37,13 @@ func SetRouter(router *gin.Engine) {
 		order.PUT("/:id", middleware.CheckLogin(true), controller.OrderPut)
 		order.POST("/review/:id", middleware.CheckLogin(true), controller.OrderReview)
 	}
+	// 消息模块
+	chat := router.Group("/chats")
+	{
+		chat.GET("", middleware.CheckLogin(true), controller.GetAllChats)
+		chat.POST("/:id", middleware.CheckLogin(true), controller.ChatsPost)
+		chat.GET("/:id", middleware.CheckLogin(true), controller.GetChatsById)
+	}
 	// 上传模块
 	upload := router.Group("/upload")
 	{

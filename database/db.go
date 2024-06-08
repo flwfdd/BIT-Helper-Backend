@@ -69,6 +69,16 @@ type Order struct {
 	Receiver uint `gorm:"not null" json:"receiver_id"`
 }
 
+// 聊天
+type Chats struct {
+	Base
+	Time     time.Time `gorm:"autoCreateTime" json:"time"`
+	Type     string    `gorm:"not null" json:"type"`
+	Uid_from uint      `gorm:"not null" json:"uid_from"`
+	Content  string    `gorm:"not null" json:"content"`
+	Uid_to   uint      `gorm:"not null" json:"uid_to"`
+}
+
 func Init() {
 	dsn := config.Config.Dsn
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
@@ -78,7 +88,7 @@ func Init() {
 	DB = db
 
 	err = db.AutoMigrate(
-		&User{}, &Image{}, &Goods{}, &Order{},
+		&User{}, &Image{}, &Goods{}, &Order{}, &Chats{},
 	)
 	if err != nil {
 		panic(err)

@@ -178,15 +178,15 @@ func GoodsList(c *gin.Context) {
 	var goods []database.Goods
 	if query.Keyword != "" {
 		if query.Uid != 0 {
-			database.DB.Limit(config.Config.PageSize).Where("(title LIKE ? OR intro LIKE ?) AND uid = ?", "%"+query.Keyword+"%", "%"+query.Keyword+"%", query.Uid).Order(order).Find(&goods)
+			database.DB.Offset(config.Config.PageSize*query.Page).Limit(config.Config.PageSize).Where("(title LIKE ? OR intro LIKE ?) AND uid = ?", "%"+query.Keyword+"%", "%"+query.Keyword+"%", query.Uid).Order(order).Find(&goods)
 		} else {
-			database.DB.Limit(config.Config.PageSize).Where("title LIKE ? OR intro LIKE ?", "%"+query.Keyword+"%", "%"+query.Keyword+"%").Order(order).Find(&goods)
+			database.DB.Offset(config.Config.PageSize*query.Page).Limit(config.Config.PageSize).Where("title LIKE ? OR intro LIKE ?", "%"+query.Keyword+"%", "%"+query.Keyword+"%").Order(order).Find(&goods)
 		}
 	} else {
 		if query.Uid != 0 {
-			database.DB.Limit(config.Config.PageSize).Where("uid = ?", query.Uid).Order(order).Find(&goods)
+			database.DB.Offset(config.Config.PageSize*query.Page).Limit(config.Config.PageSize).Where("uid = ?", query.Uid).Order(order).Find(&goods)
 		} else {
-			database.DB.Limit(config.Config.PageSize).Order(order).Find(&goods)
+			database.DB.Offset(config.Config.PageSize * query.Page).Limit(config.Config.PageSize).Order(order).Find(&goods)
 		}
 	}
 
