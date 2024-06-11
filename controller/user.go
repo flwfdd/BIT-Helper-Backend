@@ -142,7 +142,7 @@ type UserSetInfoQuery struct {
 	Nickname  string `json:"nickname"`   // 昵称
 	AvatarMid string `json:"avatar_mid"` // 头像
 	Intro     string `json:"intro"`      // 格言 简介
-	Phone     int    `json:"phone"`      // 电话
+	Phone     string `json:"phone"`      // 电话
 }
 
 // 修改用户信息
@@ -191,7 +191,7 @@ func UserSetInfo(c *gin.Context) {
 	if query.Intro != "" {
 		user.Intro = query.Intro
 	}
-	if query.Phone != 0 {
+	if query.Phone != "" {
 		user.Phone = query.Phone
 	}
 	if err := database.DB.Save(&user).Error; err != nil {

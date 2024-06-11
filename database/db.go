@@ -1,7 +1,7 @@
 /*
  * @Author: flwfdd
  * @Date: 2024-06-06 16:42:56
- * @LastEditTime: 2024-06-07 12:11:19
+ * @LastEditTime: 2024-06-11 14:50:20
  * @Description:
  * _(:з」∠)_
  */
@@ -40,7 +40,7 @@ type User struct {
 	Intro    string `json:"intro"`
 	Score    int    `json:"score"`
 	Identity int    `json:"identity"`
-	Phone    int    `json:"phone"`
+	Phone    string `json:"phone"`
 }
 
 // 图片
@@ -54,12 +54,13 @@ type Image struct {
 // 商品
 type Goods struct {
 	Base
-	Type  int     `gorm:"not null" json:"type"`
-	Uid   uint    `gorm:"not null" json:"uid"`
-	Title string  `gorm:"not null" json:"title"`
-	Intro string  `gorm:"not null" json:"intro"`
-	Num   int     `gorm:"not null" json:"num"`
-	Price float32 `gorm:"not null" json:"price"`
+	Type   int     `gorm:"not null" json:"type"`
+	Uid    uint    `gorm:"not null" json:"uid"`
+	Title  string  `gorm:"not null" json:"title"`
+	Intro  string  `gorm:"not null" json:"intro"`
+	Num    int     `gorm:"not null" json:"num"`
+	Price  float32 `gorm:"not null" json:"price"`
+	Images string  `json:"images"` //图片mids，以" "拼接
 }
 
 // 订单

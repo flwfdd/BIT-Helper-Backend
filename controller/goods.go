@@ -3,6 +3,7 @@ package controller
 import (
 	"BIT-Helper/database"
 	"BIT-Helper/util/config"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -10,16 +11,30 @@ import (
 
 type GoodsAPI struct {
 	database.Goods
-	User database.User `json:"user"`
-	Time time.Time     `json:"time"`
+	User   database.User `json:"user"`
+	Images []ImageAPI    `json:"images"`
+	Time   time.Time     `json:"time"`
+}
+
+// 用于分割字符串（处理空元素的情况）
+func spilt(str string) []string {
+	l := strings.Split(str, " ")
+	out := make([]string, 0)
+	for i := range l {
+		if l[i] != "" {
+			out = append(out, l[i])
+		}
+	}
+	return out
 }
 
 // 获取商品
 func GetGoodsAPI(goods database.Goods) GoodsAPI {
 	return GoodsAPI{
-		Goods: goods,
-		User:  GetUserAPI(int(goods.Uid)),
-		Time:  goods.CreatedAt,
+		Goods:  goods,
+		User:   GetUserAPI(int(goods.Uid)),
+		Images: GetImageAPIArr(spilt(goods.Images)),
+		Time:   goods.CreatedAt,
 	}
 }
 
@@ -31,7 +46,7 @@ func GoodsGet(c *gin.Context) {
 		return
 	}
 	if goods.ID == 0 {
-		c.JSON(500, gin.H{"msg": "商品不存在Orz"})
+		c.JSON(404, gin.H{"msg": "商品不存在Orz"})
 		return
 	}
 
@@ -40,11 +55,12 @@ func GoodsGet(c *gin.Context) {
 
 // 发布商品请求接口
 type GoodsPostQuery struct {
-	Type  int     `json:"type" binding:"required"`
-	Title string  `json:"title" binding:"required"`
-	Intro string  `json:"intro" binding:"required"`
-	Num   int     `json:"num" binding:"required"`
-	Price float32 `json:"price" binding:"required"`
+	Type      int      `json:"type" binding:"required"`
+	Title     string   `json:"title" binding:"required"`
+	Intro     string   `json:"intro" binding:"required"`
+	Num       int      `json:"num" binding:"required"`
+	Price     float32  `json:"price" binding:"required"`
+	ImageMids []string `json:"image_mids"`
 }
 
 // 新建商品
@@ -54,29 +70,40 @@ func GoodsPost(c *gin.Context) {
 		c.JSON(400, gin.H{"msg": "参数错误awa"})
 		return
 	}
+	if !CheckImage(query.ImageMids) {
+		c.JSON(400, gin.H{"msg": "存在未上传成功的图片Orz"})
+		return
+	}
 
 	var goods = database.Goods{
-		Type:  query.Type,
-		Uid:   c.GetUint("uid_uint"),
-		Title: query.Title,
-		Intro: query.Intro,
-		Num:   query.Num,
-		Price: query.Price,
+		Type:   query.Type,
+		Uid:    c.GetUint("uid_uint"),
+		Title:  query.Title,
+		Intro:  query.Intro,
+		Num:    query.Num,
+		Price:  query.Price,
+		Images: strings.Join(query.ImageMids, " "),
 	}
 	if err := database.DB.Create(&goods).Error; err != nil {
 		c.JSON(500, gin.H{"msg": "数据库错误Orz"})
 		return
 	}
-	c.JSON(200, gin.H{"msg": "发布成功OvO"})
+	c.JSON(200, GoodsAPI{
+		Goods:  goods,
+		User:   GetUserAPI(int(goods.Uid)),
+		Images: GetImageAPIArr(spilt(goods.Images)),
+		Time:   goods.CreatedAt,
+	})
 }
 
 // 修改商品请求接口
 type GoodsPutQeury struct {
-	Type  int     `json:"type"`
-	Title string  `json:"title"`
-	Intro string  `json:"intro"`
-	Num   int     `json:"num"`
-	Price float32 `json:"price"`
+	Type      int      `json:"type"`
+	Title     string   `json:"title"`
+	Intro     string   `json:"intro"`
+	Num       int      `json:"num"`
+	Price     float32  `json:"price"`
+	ImageMids []string `json:"image_mids"`
 }
 
 // 修改商品
@@ -93,11 +120,15 @@ func GoodsPut(c *gin.Context) {
 		return
 	}
 	if goods.ID == 0 {
-		c.JSON(500, gin.H{"msg": "商品不存在Orz"})
+		c.JSON(404, gin.H{"msg": "商品不存在Orz"})
 		return
 	}
 	if goods.Uid != c.GetUint("uid_uint") && !c.GetBool("admin") {
-		c.JSON(500, gin.H{"msg": "没有修改权限Orz"})
+		c.JSON(401, gin.H{"msg": "没有修改权限Orz"})
+		return
+	}
+	if !CheckImage(query.ImageMids) {
+		c.JSON(400, gin.H{"msg": "存在未上传成功的图片Orz"})
 		return
 	}
 
@@ -116,6 +147,7 @@ func GoodsPut(c *gin.Context) {
 	if query.Price != 0 {
 		goods.Price = query.Price
 	}
+	goods.Images = strings.Join(query.ImageMids, " ")
 	if err := database.DB.Save(&goods).Error; err != nil {
 		c.JSON(500, gin.H{"msg": "数据库错误Orz"})
 		return
@@ -132,11 +164,11 @@ func GoodsDelete(c *gin.Context) {
 		return
 	}
 	if goods.ID == 0 {
-		c.JSON(500, gin.H{"msg": "商品不存在Orz"})
+		c.JSON(404, gin.H{"msg": "商品不存在Orz"})
 		return
 	}
 	if goods.Uid != c.GetUint("uid_uint") && !c.GetBool("admin") {
-		c.JSON(500, gin.H{"msg": "没有删除权限Orz"})
+		c.JSON(401, gin.H{"msg": "没有删除权限Orz"})
 		return
 	}
 
