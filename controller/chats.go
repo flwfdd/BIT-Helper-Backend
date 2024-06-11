@@ -62,12 +62,12 @@ func GetAllChats(c *gin.Context) {
 	for value := range uniqueValues {
 		chats = append(chats, value)
 	}
-	// 检查是否找到任何记录
-	if len(chats) == 0 {
-		c.JSON(404, gin.H{"msg": "没有找到记录"})
-		// 返回空列表？or ？
-		return
-	}
+	// // 检查是否找到任何记录
+	// if len(chats) == 0 {
+	// 	c.JSON(404, gin.H{"msg": "没有找到记录"})
+	// 	// 返回空列表？or ？
+	// 	return
+	// }
 
 	// 成功找到记录，返回JSON响应
 	chatsAPI := make([]database.User, 0)
