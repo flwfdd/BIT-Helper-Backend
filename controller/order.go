@@ -8,7 +8,6 @@ package controller
 
 import (
 	"BIT-Helper/database"
-	"BIT-Helper/util/config"
 	"github.com/gin-gonic/gin"
 	"time"
 )
@@ -53,7 +52,7 @@ func OrderList(c *gin.Context) {
 	var orders []database.Order
 	q := database.DB
 	q = q.Where("state = ?", query.State)
-	if err := q.Offset(query.Page * config.Config.PageSize).Limit(config.Config.PageSize).Order("updated_at DESC").Find(&orders).Error; err != nil {
+	if err := q.Order("updated_at DESC").Find(&orders).Error; err != nil {
 		c.JSON(500, gin.H{"msg": "数据库错误Orz"})
 		return
 	}
@@ -63,7 +62,16 @@ func OrderList(c *gin.Context) {
 		orderAPIs = append(orderAPIs, GetOrderAPI(order))
 	}
 
-	c.JSON(200, orderAPIs)
+	// 取出只有自己相关的订单（receiver_id = uid || 商品的uid = uid）
+	uid := c.GetUint("uid_uint")
+	finalOrderAPIs := make([]OrderAPI, 0)
+	for _, orderAPI := range orderAPIs {
+		if orderAPI.Receiver.ID == uid || orderAPI.Goods.Uid == uid {
+			finalOrderAPIs = append(finalOrderAPIs, orderAPI)
+		}
+	}
+
+	c.JSON(200, finalOrderAPIs)
 }
 
 // 获取订单
@@ -183,6 +191,20 @@ func OrderPut(c *gin.Context) {
 	} else if query.State == 3 {
 		//双方都可撤销
 		order.State = query.State
+		// 当前用户信誉分-3分
+		var user database.User
+		if err := database.DB.Limit(1).Find(&user, "id = ?", uid).Error; err != nil {
+			c.JSON(500, gin.H{"msg": "数据库错误Orz"})
+			return
+		}
+		user.Score -= 3
+		if user.Score < 0 {
+			user.Score = 0
+		}
+		if err := database.DB.Save(&user).Error; err != nil {
+			c.JSON(500, gin.H{"msg": "数据库错误Orz"})
+			return
+		}
 	} else {
 		c.JSON(500, gin.H{"msg": "不支持的状态Orz"})
 		return
@@ -219,6 +241,12 @@ func OrderReview(c *gin.Context) {
 		c.JSON(500, gin.H{"msg": "订单不存在Orz"})
 		return
 	}
+
+	if query.Star < 1 || query.Star > 5 {
+		c.JSON(500, gin.H{"msg": "评分错误Orz"})
+		return
+	}
+
 	orderAPI := GetOrderAPI(order)
 	uid := c.GetUint("uid_uint")
 	if orderAPI.Goods.Uid != uid && order.Receiver != uid {
@@ -230,7 +258,32 @@ func OrderReview(c *gin.Context) {
 		return
 	}
 
-	// TODO 创建评价/修改信誉分
+	// 如果是receiver，修改发布方信誉分
+	// 如果是goods.uid，修改接收方信誉分
+	var user database.User
+	if orderAPI.Goods.Uid == uid {
+		// 接收方
+		if err := database.DB.Limit(1).Find(&user, "id = ?", order.Receiver).Error; err != nil {
+			c.JSON(500, gin.H{"msg": "数据库错误Orz"})
+			return
+		}
+	} else {
+		// 发布方
+		if err := database.DB.Limit(1).Find(&user, "id = ?", orderAPI.Goods.Uid).Error; err != nil {
+			c.JSON(500, gin.H{"msg": "数据库错误Orz"})
+			return
+		}
+	}
+	user.Score += query.Star - 3
+	if user.Score < 0 {
+		user.Score = 0
+	} else if user.Score > 100 {
+		user.Score = 100
+	}
+	if err := database.DB.Save(&user).Error; err != nil {
+		c.JSON(500, gin.H{"msg": "数据库错误Orz"})
+		return
+	}
 
 	c.JSON(200, gin.H{"msg": "评价成功OvO"})
 }

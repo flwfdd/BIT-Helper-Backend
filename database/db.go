@@ -40,6 +40,7 @@ type User struct {
 	Intro    string `json:"intro"`
 	Score    int    `json:"score"`
 	Identity int    `json:"identity"`
+	Phone    int    `json:"phone"`
 }
 
 // 图片
