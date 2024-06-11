@@ -85,8 +85,14 @@ func OrderGet(c *gin.Context) {
 		c.JSON(500, gin.H{"msg": "订单不存在Orz"})
 		return
 	}
+	orderAPI := GetOrderAPI(order)
+	uid := c.GetUint("uid_uint")
+	if orderAPI.Goods.Uid != uid && order.Receiver != uid {
+		c.JSON(500, gin.H{"msg": "无关订单，无法查看Orz"})
+		return
+	}
 
-	c.JSON(200, GetOrderAPI(order))
+	c.JSON(200, orderAPI)
 }
 
 // 发布订单请求接口
@@ -119,6 +125,7 @@ func OrderPost(c *gin.Context) {
 		c.JSON(500, gin.H{"msg": "不能购买自己的商品Orz"})
 		return
 	}
+	println(goods.Uid, c.GetUint("uid_uint"))
 
 	// 创建订单
 	tx := database.DB.Begin()
