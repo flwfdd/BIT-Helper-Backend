@@ -44,6 +44,14 @@ func SetRouter(router *gin.Engine) {
 		chat.POST("/:id", middleware.CheckLogin(true), controller.ChatsPost)
 		chat.GET("/:id", middleware.CheckLogin(true), controller.GetChatsById)
 	}
+	// 操作反馈模块
+	reaction := router.Group("/reaction")
+	{
+		reaction.POST("/like", middleware.CheckLogin(true), controller.ReactionLike)
+		reaction.POST("/comments", middleware.CheckLogin(true), controller.ReactionComment)
+		reaction.GET("/comments", middleware.CheckLogin(false), controller.ReactionCommentList)
+		reaction.DELETE("/comments/:id", middleware.CheckLogin(true), controller.ReactionCommentDelete)
+	}
 	// 上传模块
 	upload := router.Group("/upload")
 	{

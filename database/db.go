@@ -112,7 +112,7 @@ func Init() {
 	DB = db
 
 	err = db.AutoMigrate(
-		&User{}, &Image{}, &Goods{}, &Order{}, &Chats{},
+		&User{}, &Image{}, &Goods{}, &Order{}, &Chats{}, &Comment{}, &Like{},
 	)
 	if err != nil {
 		panic(err)

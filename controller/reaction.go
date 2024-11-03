@@ -472,8 +472,8 @@ func ReactionCommentDelete(c *gin.Context) {
 	switch obj_type {
 	case "comment":
 		_, err = CommentOnComment(obj_id, -1, 0, true, "", "")
-	case "poster":
-		//_, err = PosterOnComment(obj_id, -1, c.GetUint("uid_uint"), true, "")
+		//case "poster":
+		//	_, err = PosterOnComment(obj_id, -1, c.GetUint("uid_uint"), true, "")
 	}
 	if err != nil {
 		c.JSON(500, gin.H{"msg": "无效对象Orz"})
