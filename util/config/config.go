@@ -36,9 +36,10 @@ var Config = struct {
 			Path      string
 		}
 	}
-	DefaultAvatar string `yaml:"default_avatar"`
-	PageSize      int    `yaml:"page_size"`
-	ReleaseMode   bool   `yaml:"release_mode"`
+	DefaultAvatar      string `yaml:"default_avatar"`
+	PageSize           int    `yaml:"page_size"`
+	CommentPreviewSize int    `yaml:"comment_preview_size"`
+	ReleaseMode        bool   `yaml:"release_mode"`
 }{}
 
 func Init() {

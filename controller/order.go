@@ -14,9 +14,9 @@ import (
 
 type OrderAPI struct {
 	database.Order
-	Goods    GoodsAPI      `json:"goods"`
-	Receiver database.User `json:"receiver"`
-	Time     time.Time     `json:"time"`
+	Goods    GoodsAPI  `json:"goods"`
+	Receiver UserAPI   `json:"receiver"`
+	Time     time.Time `json:"time"`
 }
 
 // 获取订单API
@@ -66,7 +66,7 @@ func OrderList(c *gin.Context) {
 	uid := c.GetUint("uid_uint")
 	finalOrderAPIs := make([]OrderAPI, 0)
 	for _, orderAPI := range orderAPIs {
-		if orderAPI.Receiver.ID == uid || orderAPI.Goods.Uid == uid {
+		if orderAPI.Receiver.ID == int(uid) || orderAPI.Goods.Uid == uid {
 			finalOrderAPIs = append(finalOrderAPIs, orderAPI)
 		}
 	}

@@ -11,9 +11,9 @@ import (
 
 type GoodsAPI struct {
 	database.Goods
-	User   database.User `json:"user"`
-	Images []ImageAPI    `json:"images"`
-	Time   time.Time     `json:"time"`
+	User   UserAPI    `json:"user"`
+	Images []ImageAPI `json:"images"`
+	Time   time.Time  `json:"time"`
 }
 
 // 用于分割字符串（处理空元素的情况）

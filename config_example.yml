@@ -18,4 +18,5 @@ saver: #文件保存相关
     path: "/bit_helper/"
 default_avatar: "e2e4437695e019484769bc807948dad8.jpeg" #默认头像
 page_size: 10 #每页显示数量
+comment_preview_size: 3 #预览子评论数量
 release_mode: false #是否为部署模式 开启后不显示DEBUG信息

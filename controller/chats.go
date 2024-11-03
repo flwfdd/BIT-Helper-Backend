@@ -13,15 +13,15 @@ type ChatlistAPI struct {
 }
 
 type ChatAPI struct {
-	Id       int           `json:"id"`
-	Time     time.Time     `json:"time"`
-	Sender   database.User `json:"sender"`
-	Receiver database.User `json:"receiver"`
-	Content  string        `json:"content"`
+	Id       int       `json:"id"`
+	Time     time.Time `json:"time"`
+	Sender   UserAPI   `json:"sender"`
+	Receiver UserAPI   `json:"receiver"`
+	Content  string    `json:"content"`
 }
 
 // 获取消息列表
-func GetChatlistAPI(id int) database.User {
+func GetChatlistAPI(id int) UserAPI {
 	return GetUserAPI(id)
 }
 func GetChatsAPI(now_chat database.Chats) ChatAPI {
@@ -70,7 +70,7 @@ func GetAllChats(c *gin.Context) {
 	// }
 
 	// 成功找到记录，返回JSON响应
-	chatsAPI := make([]database.User, 0)
+	chatsAPI := make([]UserAPI, 0)
 	for _, v := range chats {
 		chatsAPI = append(chatsAPI, GetChatlistAPI(v))
 	}

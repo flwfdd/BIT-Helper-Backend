@@ -81,6 +81,28 @@ type Chats struct {
 	Uid_to   uint      `gorm:"not null" json:"uid_to"`
 }
 
+// 评论
+type Comment struct {
+	Base
+	Obj        string `gorm:"not null;index" json:"obj"`      //评论对象
+	Uid        uint   `gorm:"not null;index" json:"uid"`      //用户id
+	Text       string `gorm:"not null" json:"text"`           //评论内容
+	Anonymous  bool   `gorm:"default:false" json:"anonymous"` //是否匿名
+	LikeNum    uint   `gorm:"default:0" json:"like_num"`      //点赞数
+	CommentNum uint   `gorm:"default:0" json:"comment_num"`   //评论数
+	ReplyObj   string `json:"reply_obj"`                      //回复对象
+	ReplyUid   int    `gorm:"default:0" json:"reply_uid"`     //回复用户id
+	Rate       uint   `gorm:"default:0" json:"rate"`          //评分
+	Images     string `json:"images"`                         //图片mids，以" "拼接
+}
+
+// 点赞
+type Like struct {
+	Base
+	Obj string `gorm:"not null;index" json:"obj"` //点赞对象
+	Uid uint   `gorm:"not null;index" json:"uid"` //用户id
+}
+
 func Init() {
 	dsn := config.Config.Dsn
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})

@@ -7,6 +7,7 @@ import (
 	"BIT-Helper/util/webvpn"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,18 +20,26 @@ func CleanUser(old_user database.User) database.User {
 	return user
 }
 
+type UserAPI struct {
+	ID         int       `json:"id"`
+	CreateTime time.Time `json:"create_time"`
+	Nickname   string    `json:"nickname"`
+	Avatar     ImageAPI  `json:"avatar"`
+	Intro      string    `json:"intro"`
+}
+
 // 获取用户信息
-func GetUserAPI(uid int) database.User {
+func GetUserAPI(uid int) UserAPI {
 	return GetUserAPIMap(map[int]bool{uid: true})[uid]
 }
 
-func GetUserAPIList(uid_list []int) []database.User {
+func GetUserAPIList(uid_list []int) []UserAPI {
 	uid_map := make(map[int]bool)
 	for _, uid := range uid_list {
 		uid_map[uid] = true
 	}
 	user_api_map := GetUserAPIMap(uid_map)
-	user_api_list := make([]database.User, 0, len(uid_list))
+	user_api_list := make([]UserAPI, 0, len(uid_list))
 	for _, uid := range uid_list {
 		user_api_list = append(user_api_list, user_api_map[uid])
 	}
@@ -38,17 +47,33 @@ func GetUserAPIList(uid_list []int) []database.User {
 }
 
 // 批量获取用户信息
-func GetUserAPIMap(uid_map map[int]bool) map[int]database.User {
-	out := make(map[int]database.User)
+func GetUserAPIMap(uid_map map[int]bool) map[int]UserAPI {
+	out := make(map[int]UserAPI)
 	uid_list := make([]int, 0)
 	for uid := range uid_map {
-		uid_list = append(uid_list, uid)
+		if uid == -1 {
+			out[-1] = UserAPI{
+				ID:         -1,
+				CreateTime: time.Now(),
+				Nickname:   "匿名者",
+				Avatar:     GetImageAPI(""),
+				Intro:      "面对愚昧，匿名者自己也缄口不言。",
+			}
+		} else {
+			uid_list = append(uid_list, uid)
+		}
 	}
 
 	var users []database.User
 	database.DB.Where("id IN ?", uid_list).Find(&users)
 	for _, user := range users {
-		out[int(user.ID)] = CleanUser(user)
+		out[int(user.ID)] = UserAPI{
+			ID:         int(user.ID),
+			CreateTime: user.CreatedAt,
+			Nickname:   user.Nickname,
+			Avatar:     GetImageAPI(user.Avatar),
+			Intro:      user.Intro,
+		}
 	}
 	return out
 }
@@ -98,14 +123,13 @@ func UserLogin(c *gin.Context) {
 		user.Nickname = query.Sid
 		user.Intro = "BITer " + query.Sid
 		user.Score = 100
-		user.Identity = database.Identity_Normal
 		if err := database.DB.Create(&user).Error; err != nil {
 			c.JSON(500, gin.H{"msg": "数据库错误Orz"})
 			return
 		}
 	}
 
-	token := jwt.GetUserToken(fmt.Sprint(user.ID), config.Config.LoginExpire, config.Config.Key, int(user.Identity))
+	token := jwt.GetUserToken(fmt.Sprint(user.ID), config.Config.LoginExpire, config.Config.Key, user.Identity)
 	c.JSON(200, gin.H{"msg": "登录成功OvO", "fake_cookie": token})
 }
 
