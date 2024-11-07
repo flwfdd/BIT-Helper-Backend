@@ -147,7 +147,7 @@ func Init() {
 	// 	&User{}, &Image{}, &Goods{}, &Order{}, &Chats{}, &Comment{}, &Like{},
 	// )
 	err = db.AutoMigrate(
-		&User{}, &Image{}, &Goods{}, &Order{}, &Chats{}, &Comment{}, &Like{}, &Topic{}, &VoteOption{}, &VoteResult{}, &Rating{},
+		&User{}, &Image{}, &Goods{}, &Order{}, &Chats{}, &Comment{}, &Like{}, &Topic{}, &VoteOption{}, &VoteResult{},
 	)
 
 	// -------------------------------------------------------
