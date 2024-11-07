@@ -84,7 +84,7 @@ type Chats struct {
 // 评论
 type Comment struct {
 	Base
-	Obj        string `gorm:"not null;index" json:"obj"`      //评论对象
+	Tid        uint   `gorm:"not null;index" json:"tid"`      //评论话题id
 	Uid        uint   `gorm:"not null;index" json:"uid"`      //用户id
 	Text       string `gorm:"not null" json:"text"`           //评论内容
 	Anonymous  bool   `gorm:"default:false" json:"anonymous"` //是否匿名
@@ -103,6 +103,35 @@ type Like struct {
 	Uid uint   `gorm:"not null;index" json:"uid"` //用户id
 }
 
+// TODO: ADD 1. TOPIC 2. VOTE TOPIC 3. Rate count
+// -------------------------------------------------------
+
+type Topic struct {
+	Base
+	Type    int     `gorm:"not null" json:"type"`         // 主题类型(“校园生活”、“电影”、“音乐”、“读书”之一)
+	Uid     uint    `gorm:"not null" json:"uid"`          // 发布者ID
+	Title   string  `gorm:"not null" json:"title"`        // 主题标题
+	Content string  `gorm:"not null" json:"content"`      // 主题内容
+	Image   string  `json:"image"`                        // 主题图片
+	IsVote  bool    `gorm:"default:false" json:"is_vote"` // 是否为投票话题
+	LikeNum uint    `gorm:"default:0" json:"like_num"`    // 点赞数
+	AvgRate float32 `gorm:"default:0" json:"avg_rate"`    // 平均评分，每次有用户评论都需要更新一次
+}
+
+type VoteOption struct {
+	Base
+	TopicID uint   `gorm:"not null" json:"topic_id"` // 所属主题ID
+	Option  string `gorm:"not null" json:"option"`   // 投票选项内容
+}
+
+type VoteResult struct {
+	Base
+	VoteOptionID uint `gorm:"not null" json:"vote_option_id"` // 投票选项ID
+	Count        uint `gorm:"default:0" json:"count"`         // 投票数量
+}
+
+// -------------------------------------------------------
+
 func Init() {
 	dsn := config.Config.Dsn
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
@@ -111,9 +140,18 @@ func Init() {
 	}
 	DB = db
 
+	// TODO: ADD 1. TOPIC 2. VOTE TOPIC 3. Rate count
+	// -------------------------------------------------------
+
+	// err = db.AutoMigrate(
+	// 	&User{}, &Image{}, &Goods{}, &Order{}, &Chats{}, &Comment{}, &Like{},
+	// )
 	err = db.AutoMigrate(
-		&User{}, &Image{}, &Goods{}, &Order{}, &Chats{}, &Comment{}, &Like{},
+		&User{}, &Image{}, &Goods{}, &Order{}, &Chats{}, &Comment{}, &Like{}, &Topic{}, &VoteOption{}, &VoteResult{}, &Rating{},
 	)
+
+	// -------------------------------------------------------
+
 	if err != nil {
 		panic(err)
 	}
