@@ -131,21 +131,101 @@ func TopicList(c *gin.Context) {
 	}
 
 	// topics存储数据库查询结果（topic对象列表）
+	// 加上"%"表示模糊查询，表示匹配包含 query.Keyword 的任意字符串
 	var topics []database.Topic
+
 	if query.Keyword != "" {
 		if query.Uid != 0 {
-			// 加上"%"表示模糊查询，表示匹配包含 query.Keyword 的任意字符串
-			database.DB.Offset(config.Config.PageSize*query.Page).Limit(config.Config.PageSize).Where("(title LIKE ? OR intro LIKE ?) AND (uid = ?) AND (type = ?)", "%"+query.Keyword+"%", "%"+query.Keyword+"%", query.Uid, topicType).Order(order).Find(&topics)
+			if query.Tag != "" {
+				// 根据标签筛选 TopicTag 表
+				var topicTags []database.TopicTag
+				database.DB.Where("tag = ?", query.Tag).Find(&topicTags)
+
+				// 获取符合标签的 topic_id 列表
+				var topicIDs []uint
+				for _, topicTag := range topicTags {
+					topicIDs = append(topicIDs, topicTag.TopicID)
+				}
+
+				// 根据其他查询条件查询 Topic 表
+				database.DB.Offset(config.Config.PageSize*query.Page).Limit(config.Config.PageSize).
+					Where("(title LIKE ? OR content LIKE ?) AND (uid = ?) AND (type = ?) AND id IN (?)", "%"+query.Keyword+"%", "%"+query.Keyword+"%", query.Uid, topicType, topicIDs).
+					Order(order).Find(&topics)
+			} else {
+				database.DB.Offset(config.Config.PageSize*query.Page).Limit(config.Config.PageSize).
+					Where("(title LIKE ? OR content LIKE ?) AND (uid = ?) AND (type = ?)", "%"+query.Keyword+"%", "%"+query.Keyword+"%", query.Uid, topicType).
+					Order(order).Find(&topics)
+			}
 		} else {
-			database.DB.Offset(config.Config.PageSize*query.Page).Limit(config.Config.PageSize).Where("(title LIKE ? OR intro LIKE ?) AND (type = ?)", "%"+query.Keyword+"%", "%"+query.Keyword+"%", topicType).Order(order).Find(&topics)
+			if query.Tag != "" {
+				// 根据标签筛选 TopicTag 表
+				var topicTags []database.TopicTag
+				database.DB.Where("tag = ?", query.Tag).Find(&topicTags)
+
+				// 获取符合标签的 topic_id 列表
+				var topicIDs []uint
+				for _, topicTag := range topicTags {
+					topicIDs = append(topicIDs, topicTag.TopicID)
+				}
+
+				// 根据其他查询条件查询 Topic 表
+				database.DB.Offset(config.Config.PageSize*query.Page).Limit(config.Config.PageSize).
+					Where("(title LIKE ? OR content LIKE ?) AND (type = ?) AND id IN (?)", "%"+query.Keyword+"%", "%"+query.Keyword+"%", topicType, topicIDs).
+					Order(order).Find(&topics)
+			} else {
+				database.DB.Offset(config.Config.PageSize*query.Page).Limit(config.Config.PageSize).
+					Where("(title LIKE ? OR content LIKE ?) AND (type = ?)", "%"+query.Keyword+"%", "%"+query.Keyword+"%", topicType).
+					Order(order).Find(&topics)
+			}
 		}
 	} else {
 		if query.Uid != 0 {
-			database.DB.Offset(config.Config.PageSize*query.Page).Limit(config.Config.PageSize).Where("(uid = ?) AND (type = ?)", query.Uid, topicType).Order(order).Find(&topics)
+			if query.Tag != "" {
+				// 根据标签筛选 TopicTag 表
+				var topicTags []database.TopicTag
+				database.DB.Where("tag = ?", query.Tag).Find(&topicTags)
+
+				// 获取符合标签的 topic_id 列表
+				var topicIDs []uint
+				for _, topicTag := range topicTags {
+					topicIDs = append(topicIDs, topicTag.TopicID)
+				}
+
+				// 根据其他查询条件查询 Topic 表
+				database.DB.Offset(config.Config.PageSize*query.Page).Limit(config.Config.PageSize).
+					Where("(uid = ?) AND (type = ?) AND id IN (?)", query.Uid, topicType, topicIDs).
+					Order(order).Find(&topics)
+			} else {
+				database.DB.Offset(config.Config.PageSize*query.Page).Limit(config.Config.PageSize).
+					Where("(uid = ?) AND (type = ?)", query.Uid, topicType).
+					Order(order).Find(&topics)
+			}
 		} else {
-			database.DB.Offset(config.Config.PageSize*query.Page).Limit(config.Config.PageSize).Where("type = ?", topicType).Order(order).Find(&topics)
+			if query.Tag != "" {
+				// 根据标签筛选 TopicTag 表
+				var topicTags []database.TopicTag
+				database.DB.Where("tag = ?", query.Tag).Find(&topicTags)
+
+				// 获取符合标签的 topic_id 列表
+				var topicIDs []uint
+				for _, topicTag := range topicTags {
+					topicIDs = append(topicIDs, topicTag.TopicID)
+				}
+
+				// 根据其他查询条件查询 Topic 表
+				database.DB.Offset(config.Config.PageSize*query.Page).Limit(config.Config.PageSize).
+					Where("(type = ?) AND id IN (?)", topicType, topicIDs).
+					Order(order).Find(&topics)
+			} else {
+				database.DB.Offset(config.Config.PageSize*query.Page).Limit(config.Config.PageSize).
+					Where("(type = ?)", topicType).
+					Order(order).Find(&topics)
+			}
 		}
 	}
+
+	// 返回查询结果
+	c.JSON(200, topics)
 
 	// 若查询结果为空，.find()返回空列表，不处理
 
