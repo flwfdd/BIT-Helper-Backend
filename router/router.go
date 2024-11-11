@@ -28,6 +28,15 @@ func SetRouter(router *gin.Engine) {
 		goods.PUT("/:id", middleware.CheckLogin(true), controller.GoodsPut)
 		goods.DELETE("/:id", middleware.CheckLogin(true), controller.GoodsDelete)
 	}
+	// 话题模块
+	topic := router.Group("/topic")
+	{
+		topic.GET("/:type", controller.TopicList)
+		topic.POST("/create", middleware.CheckLogin(true), controller.TopicPost)
+		topic.GET("/:type/:id", controller.TopicGet)
+		topic.PUT("/update/:id", middleware.CheckLogin(true), controller.TopicPut)
+		topic.DELETE("/delete/:id", middleware.CheckLogin(true), controller.TopicDelete)
+	}
 	// 订单模块
 	order := router.Group("/orders")
 	{

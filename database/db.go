@@ -103,19 +103,21 @@ type Like struct {
 	Uid uint   `gorm:"not null;index" json:"uid"` //用户id
 }
 
-// TODO: ADD 1. TOPIC 2. VOTE TOPIC 3. Rate count
+// TODO: ADD TOPIC :
+// ADDITIONAL: 1. VOTE TOPIC 2. TOPIC RATE/LIKE COUNT 3. USER-DEFINED TOPIC TAGS
 // -------------------------------------------------------
 
 type Topic struct {
 	Base
-	Type    int     `gorm:"not null" json:"type"`         // 主题类型(“校园生活”、“电影”、“音乐”、“读书”之一)
-	Uid     uint    `gorm:"not null" json:"uid"`          // 发布者ID
-	Title   string  `gorm:"not null" json:"title"`        // 主题标题
-	Content string  `gorm:"not null" json:"content"`      // 主题内容
-	Image   string  `json:"image"`                        // 主题图片
-	IsVote  bool    `gorm:"default:false" json:"is_vote"` // 是否为投票话题
-	LikeNum uint    `gorm:"default:0" json:"like_num"`    // 点赞数
-	AvgRate float32 `gorm:"default:0" json:"avg_rate"`    // 平均评分，每次有用户评论都需要更新一次
+	Type       int     `gorm:"not null" json:"type"`         // 主题类型(“校园生活”、“电影”、“音乐”、“读书”之一)
+	Uid        uint    `gorm:"not null" json:"uid"`          // 发布者ID
+	Title      string  `gorm:"not null" json:"title"`        // 主题标题
+	Content    string  `gorm:"not null" json:"content"`      // 主题内容
+	Image      string  `json:"image"`                        // 主题图片，mids，以" "拼接
+	IsVote     bool    `gorm:"default:false" json:"is_vote"` // 是否为投票话题
+	CommentNum uint    `gorm:"default:0" json:"comment_num"` // TODO: 评论数，注意每次有用户评论都需要+1
+	LikeNum    uint    `gorm:"default:0" json:"like_num"`    // TODO: 点赞数, 注意每次有用户点赞都需要+1（在topic.go中单独实现，暂不记录点赞人）
+	AvgRate    float32 `gorm:"default:0" json:"avg_rate"`    // 平均评分，每次有用户评论都需要更新一次
 }
 
 type VoteOption struct {
@@ -130,6 +132,12 @@ type VoteResult struct {
 	Count        uint `gorm:"default:0" json:"count"`         // 投票数量
 }
 
+type TopicTag struct {
+	Base
+	TopicID uint   `gorm:"not null" json:"topic_id"` // 所属主题ID
+	Tag     string `gorm:"not null" json:"tag"`      // 话题标签
+}
+
 // -------------------------------------------------------
 
 func Init() {
@@ -140,14 +148,15 @@ func Init() {
 	}
 	DB = db
 
-	// TODO: ADD 1. TOPIC 2. VOTE TOPIC 3. Rate count
+	// TODO: ADD TOPIC :
+	// ADDITIONAL: 1. VOTE TOPIC 2. TOPIC RATE/LIKE COUNT 3. USER-DEFINED TOPIC TAGS
 	// -------------------------------------------------------
 
 	// err = db.AutoMigrate(
 	// 	&User{}, &Image{}, &Goods{}, &Order{}, &Chats{}, &Comment{}, &Like{},
 	// )
 	err = db.AutoMigrate(
-		&User{}, &Image{}, &Goods{}, &Order{}, &Chats{}, &Comment{}, &Like{}, &Topic{}, &VoteOption{}, &VoteResult{},
+		&User{}, &Image{}, &Goods{}, &Order{}, &Chats{}, &Comment{}, &Like{}, &Topic{}, &VoteOption{}, &VoteResult{}, &TopicTag{},
 	)
 
 	// -------------------------------------------------------
