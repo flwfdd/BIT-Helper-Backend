@@ -21,8 +21,8 @@ import (
 
 // 获取对象的类型和对象的ID
 func getTypeID(obj string) (string, string) {
-	if obj[:6] == "poster" {
-		return "poster", obj[6:]
+	if obj[:6] == "topic" {
+		return "topic", obj[6:]
 	}
 	if obj[:7] == "comment" {
 		return "comment", obj[7:]
@@ -472,8 +472,8 @@ func ReactionCommentDelete(c *gin.Context) {
 	switch obj_type {
 	case "comment":
 		_, err = CommentOnComment(obj_id, -1, 0, true, "", "")
-		//case "poster":
-		//	_, err = PosterOnComment(obj_id, -1, c.GetUint("uid_uint"), true, "")
+		//case "topic":
+		//	_, err = topicOnComment(obj_id, -1, c.GetUint("uid_uint"), true, "")
 	}
 	if err != nil {
 		c.JSON(500, gin.H{"msg": "无效对象Orz"})

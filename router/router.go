@@ -36,6 +36,7 @@ func SetRouter(router *gin.Engine) {
 		topic.GET("/:type/:id", controller.TopicGet)
 		topic.PUT("/update/:id", middleware.CheckLogin(true), controller.TopicPut)
 		topic.DELETE("/delete/:id", middleware.CheckLogin(true), controller.TopicDelete)
+		topic.POST("/like/:id", middleware.CheckLogin(true), controller.TopicLike) // 点赞话题
 	}
 	// 订单模块
 	order := router.Group("/orders")
