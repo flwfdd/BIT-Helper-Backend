@@ -138,13 +138,7 @@ type TopicTag struct {
 	Tag     string `gorm:"not null" json:"tag"`      // 话题标签
 }
 
-// 使用LikeRecord及VoteRecord记录用户对话题的点赞和投票历史
-
-type LikeRecord struct {
-	Base
-	TopicID uint `gorm:"not null" json:"topic_id"` // 话题ID
-	UserID  uint `gorm:"not null" json:"user_id"`  // 用户ID
-}
+// 使用VoteRecord记录用户投票历史
 
 type VoteRecord struct {
 	Base
