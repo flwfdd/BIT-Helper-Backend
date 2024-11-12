@@ -31,12 +31,12 @@ func SetRouter(router *gin.Engine) {
 	// 话题模块
 	topic := router.Group("/topic")
 	{
-		topic.GET("/:type", controller.TopicList)
+		topic.GET("/:type", middleware.CheckLogin(false), controller.TopicList)
 		topic.POST("/create", middleware.CheckLogin(true), controller.TopicPost)
-		topic.GET("/:type/:id", controller.TopicGet)
+		topic.GET("/:type/:id", middleware.CheckLogin(false), controller.TopicGet)
 		topic.PUT("/update/:id", middleware.CheckLogin(true), controller.TopicPut)
 		topic.DELETE("/delete/:id", middleware.CheckLogin(true), controller.TopicDelete)
-		topic.POST("/like/:id", middleware.CheckLogin(true), controller.TopicLike) // 点赞话题
+		router.POST("/vote", middleware.CheckLogin(true), controller.VoteTopic)
 	}
 	// 订单模块
 	order := router.Group("/orders")

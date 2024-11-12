@@ -104,7 +104,7 @@ type Like struct {
 }
 
 // TODO: ADD TOPIC :
-// ADDITIONAL: 1. VOTE TOPIC 2. TOPIC RATE/LIKE COUNT 3. USER-DEFINED TOPIC TAGS
+// ADDITIONAL: 1. VOTE TOPIC 2. TOPIC RATE/VOTE COUNT 3. USER-DEFINED TOPIC TAGS
 // -------------------------------------------------------
 
 type Topic struct {
@@ -122,29 +122,22 @@ type Topic struct {
 
 type VoteOption struct {
 	Base
-	TopicID uint   `gorm:"not null" json:"topic_id"` // 所属主题ID
-	Option  string `gorm:"not null" json:"option"`   // 投票选项内容
+	TopicID uint   `gorm:"not null" json:"topic_id"`  // 所属主题ID
+	VoteNum uint   `gorm:"default:0" json:"vote_num"` // 投票数统计
+	Option  string `gorm:"not null" json:"option"`    // 投票选项内容
 }
-
-type VoteResult struct {
-	Base
-	VoteOptionID uint `gorm:"not null" json:"vote_option_id"` // 投票选项ID
-	Count        uint `gorm:"default:0" json:"count"`         // 投票数量
-}
-
-type TopicTag struct {
-	Base
-	TopicID uint   `gorm:"not null" json:"topic_id"` // 所属主题ID
-	Tag     string `gorm:"not null" json:"tag"`      // 话题标签
-}
-
-// 使用VoteRecord记录用户投票历史
 
 type VoteRecord struct {
 	Base
 	TopicID      uint `gorm:"not null" json:"topic_id"`       // 话题ID
 	VoteOptionID uint `gorm:"not null" json:"vote_option_id"` // 投票选项ID
 	UserID       uint `gorm:"not null" json:"user_id"`        // 用户ID
+}
+
+type TopicTag struct {
+	Base
+	TopicID uint   `gorm:"not null" json:"topic_id"` // 所属主题ID
+	Tag     string `gorm:"not null" json:"tag"`      // 话题标签
 }
 
 // -------------------------------------------------------

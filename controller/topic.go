@@ -11,6 +11,7 @@ import (
 	"BIT-Helper/database"
 	"BIT-Helper/util/config"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,10 +22,13 @@ import (
 // 所有话题的API格式（返回给前端的数据格式）
 type TopicAPI struct {
 	database.Topic
-	User   UserAPI    `json:"user"`
-	Images []ImageAPI `json:"images"`
-	Tags   []string   `json:"tags"`
-	Time   time.Time  `json:"time"`
+	User    UserAPI               `json:"user"`
+	Images  []ImageAPI            `json:"images"`
+	Tags    []string              `json:"tags"`
+	Time    time.Time             `json:"time"`
+	Own     bool                  `json:"own"`     // 标识是否为自己发布的话题
+	Like    bool                  `json:"liked"`   // 标识是否已经为该条话题点赞
+	Options []database.VoteOption `json:"options"` // 投票选项及票数
 }
 
 // 用于分割字符串（处理空元素的情况）
@@ -40,7 +44,7 @@ func split(str string) []string {
 }
 
 // 获取话题请求接口
-func GetTopicAPI(topic database.Topic) TopicAPI {
+func GetTopicAPI(topic database.Topic, c *gin.Context) TopicAPI {
 	var tags []database.TopicTag
 	database.DB.Where("topic_id = ?", topic.ID).Find(&tags)
 	// tagStrings是一个字符串数组，存储了所有的标签
@@ -48,13 +52,25 @@ func GetTopicAPI(topic database.Topic) TopicAPI {
 	for i, tag := range tags {
 		tagStrings[i] = tag.Tag
 	}
+	// 检查用户是否已点赞该话题
+	Obj := "topic" + strconv.Itoa(int(topic.ID))
+
+	// 获取投票选项及票数
+	var voteOptions []database.VoteOption
+	if topic.IsVote {
+		database.DB.Where("topic_id = ?", topic.ID).Find(&voteOptions)
+	}
+
 	return TopicAPI{
 		Topic:  topic,
 		User:   GetUserAPI(int(topic.Uid)),
 		Images: GetImageAPIArr(split(topic.Image)),
 		Tags:   tagStrings,
 		// 期望展示的时候是按照话题创建时间展示的
-		Time: topic.CreatedAt,
+		Time:    topic.CreatedAt,
+		Own:     (c.GetUint("uid_uint") == topic.Uid),
+		Like:    CheckLike(Obj, c.GetUint("uid_uint")),
+		Options: voteOptions,
 	}
 }
 
@@ -79,7 +95,7 @@ func TopicGet(c *gin.Context) {
 		return
 	}
 	// 查询成功，返回该条话题信息
-	c.JSON(200, GetTopicAPI(topic))
+	c.JSON(200, GetTopicAPI(topic, c))
 }
 
 // 使用多条件查询
@@ -97,6 +113,11 @@ type TopicListQuery struct {
 	Keyword string `form:"keyword"`
 	Uid     int    `form:"uid"`
 	Tag     string `form:"tag"` // 支持依据用户自定义tag查找话题
+}
+
+type TopicListResponse struct {
+	Topics []TopicAPI `json:"topics"`
+	Tags   []string   `json:"tags"`
 }
 
 // 获取话题列表（支持多条件查询）
@@ -232,10 +253,23 @@ func TopicList(c *gin.Context) {
 	// 将数据库查询结果转换为API格式
 	topicAPIList := make([]TopicAPI, 0)
 	for _, v := range topics {
-		topicAPIList = append(topicAPIList, GetTopicAPI(v))
+		topicAPIList = append(topicAPIList, GetTopicAPI(v, c))
 	}
 
-	c.JSON(200, topicAPIList)
+	// 获取该类型的所有标签
+	var allTags []database.TopicTag
+	database.DB.Where("type = ?", topicType).Find(&allTags)
+	tagStrings := make([]string, len(allTags))
+	for i, tag := range allTags {
+		tagStrings[i] = tag.Tag
+	}
+
+	// 返回查询结果和所有标签
+	response := TopicListResponse{
+		Topics: topicAPIList,
+		Tags:   tagStrings,
+	}
+	c.JSON(200, response)
 }
 
 // 发布话题请求接口
@@ -245,6 +279,8 @@ type TopicPostQuery struct {
 	Content   string   `json:"content" binding:"required"`
 	Tags      []string `json:"tags"`
 	ImageMids []string `json:"image_mids"`
+	IsVote    bool     `json:"is_vote"` // 是否为投票话题
+	Options   []string `json:"options"` // 投票选项
 }
 
 // 发布一条话题
@@ -256,11 +292,12 @@ func TopicPost(c *gin.Context) {
 	}
 
 	var topic = database.Topic{
-		Type:    query.Type, // 指定话题类型（不从url中指定，而是从请求体中指定）
-		Uid:     c.GetUint("uid_uint"),
+		Type:    query.Type,            // 指定话题类型（不从url中指定，而是从请求体中指定）
+		Uid:     c.GetUint("uid_uint"), // 从上下文中获取 uid_uint 的值。这个值通常是在请求处理过程中【通过中间件】或其他方式设置到上下文中的，而【不是直接从请求体】中获取。
 		Title:   query.Title,
 		Content: query.Content,
 		Image:   strings.Join(query.ImageMids, " "), // 在每张图片的mid之间加上空格，向数据库传递的是一个字符串
+		IsVote:  query.IsVote,                       // 设置是否为投票话题
 	}
 
 	if err := database.DB.Create(&topic).Error; err != nil {
@@ -275,7 +312,17 @@ func TopicPost(c *gin.Context) {
 		})
 	}
 
-	c.JSON(200, GetTopicAPI(topic))
+	// 如果是投票话题，添加投票选项
+	if query.IsVote {
+		for _, option := range query.Options {
+			database.DB.Create(&database.VoteOption{
+				TopicID: topic.ID, // 所属主题ID
+				Option:  option,   // 投票选项内容
+			})
+		}
+	}
+
+	c.JSON(200, GetTopicAPI(topic, c))
 }
 
 // 修改话题请求接口
@@ -285,6 +332,8 @@ type TopicPutQuery struct {
 	Content   string   `json:"content"`
 	Tags      []string `json:"tags"`
 	ImageMids []string `json:"image_mids"`
+	IsVote    bool     `json:"is_vote"` // 是否为投票话题
+	Options   []string `json:"options"` // 投票选项
 }
 
 // 修改话题
@@ -332,6 +381,9 @@ func TopicPut(c *gin.Context) {
 	}
 	// 每次修改【必须】更新图片信息
 	topic.Image = strings.Join(query.ImageMids, " ")
+	// 更新是否为投票话题
+	topic.IsVote = query.IsVote
+
 	// 保存修改后的话题信息到数据库
 	if err := database.DB.Save(&topic).Error; err != nil {
 		c.JSON(500, gin.H{"msg": "数据库错误Orz"})
@@ -349,7 +401,42 @@ func TopicPut(c *gin.Context) {
 		})
 	}
 
-	c.JSON(200, GetTopicAPI(topic))
+	// 如果是投票话题，处理投票选项
+	if query.IsVote {
+		// 获取现有的投票选项
+		var existingOptions []database.VoteOption
+		database.DB.Where("topic_id = ?", topic.ID).Find(&existingOptions)
+
+		// 创建一个映射来跟踪现有选项
+		existingOptionsMap := make(map[string]database.VoteOption)
+		for _, option := range existingOptions {
+			existingOptionsMap[option.Option] = option
+		}
+
+		// 处理新的投票选项
+		for _, option := range query.Options {
+			if _, exists := existingOptionsMap[option]; !exists {
+				// 新增选项
+				database.DB.Create(&database.VoteOption{
+					TopicID: topic.ID,
+					Option:  option,
+				})
+			} else {
+				// 从映射中删除已存在的选项
+				delete(existingOptionsMap, option)
+			}
+		}
+
+		// 处理删除的选项
+		for _, option := range existingOptionsMap {
+			// 软删除选项
+			database.DB.Delete(&option)
+			// 删除相关的投票记录
+			database.DB.Where("vote_option_id = ?", option.ID).Delete(&database.VoteRecord{})
+		}
+	}
+
+	c.JSON(200, GetTopicAPI(topic, c))
 }
 
 // 删除话题
@@ -378,6 +465,18 @@ func TopicDelete(c *gin.Context) {
 	// 删除话题时，同时删除话题标签信息
 	database.DB.Where("topic_id = ?", topic.ID).Delete(&database.TopicTag{})
 
+	// 如果是投票话题，删除相关的投票选项和投票记录
+	if topic.IsVote {
+		var voteOptions []database.VoteOption
+		database.DB.Where("topic_id = ?", topic.ID).Find(&voteOptions)
+		for _, option := range voteOptions {
+			// 删除投票选项
+			database.DB.Delete(&option)
+			// 删除相关的投票记录
+			database.DB.Where("vote_option_id = ?", option.ID).Delete(&database.VoteRecord{})
+		}
+	}
+
 	c.JSON(200, gin.H{"msg": "删除成功OvO"})
 }
 
@@ -403,75 +502,72 @@ func TopicDelete(c *gin.Context) {
 // 	c.JSON(200, gin.H{"msg": "点赞成功OvO"})
 // }
 
-// TODO: 投票接口尚未完成 2024-11-12
 // 投票请求接口
-type VotePostQuery struct {
-	Options []string `json:"options" binding:"required"`
+type VoteTopicQuery struct {
+	TopicID      uint `json:"topic_id" binding:"required"`       // 话题ID
+	VoteOptionID uint `json:"vote_option_id" binding:"required"` // 投票选项ID
 }
 
-// 发布投票
-func VotePost(c *gin.Context) {
-	var query VotePostQuery
+// 投票
+func VoteTopic(c *gin.Context) {
+	var query VoteTopicQuery
 	if err := c.ShouldBind(&query); err != nil {
 		c.JSON(400, gin.H{"msg": "参数错误awa"})
 		return
 	}
 
+	// 获取当前用户ID
+	userID := c.GetUint("uid_uint")
+
+	// 检查话题是否存在
 	var topic database.Topic
-	if err := database.DB.Limit(1).Find(&topic, "id = ?", c.Param("id")).Error; err != nil {
-		c.JSON(500, gin.H{"msg": "数据库错误Orz"})
+	if err := database.DB.First(&topic, "id = ?", query.TopicID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(404, gin.H{"msg": "话题不存在Orz"})
+		} else {
+			c.JSON(500, gin.H{"msg": "数据库错误Orz"})
+		}
 		return
 	}
-	if topic.ID == 0 {
-		c.JSON(404, gin.H{"msg": "话题不存在Orz"})
-		return
-	}
+
+	// 检查是否为投票话题
 	if !topic.IsVote {
 		c.JSON(400, gin.H{"msg": "该话题不是投票话题Orz"})
 		return
 	}
 
-	for _, option := range query.Options {
-		database.DB.Create(&database.VoteOption{
-			TopicID: topic.ID,
-			Option:  option,
-		})
-	}
-
-	c.JSON(200, gin.H{"msg": "投票发布成功OvO"})
-}
-
-// 投票结果请求接口
-type VoteResultQuery struct {
-	OptionID uint `json:"option_id" binding:"required"`
-}
-
-// 投票
-func Vote(c *gin.Context) {
-	var query VoteResultQuery
-	if err := c.ShouldBind(&query); err != nil {
-		c.JSON(400, gin.H{"msg": "参数错误awa"})
-		return
-	}
-
+	// 检查投票选项是否存在
 	var voteOption database.VoteOption
-	if err := database.DB.Limit(1).Find(&voteOption, "id = ?", query.OptionID).Error; err != nil {
-		c.JSON(500, gin.H{"msg": "数据库错误Orz"})
-		return
-	}
-	if voteOption.ID == 0 {
-		c.JSON(404, gin.H{"msg": "投票选项不存在Orz"})
-		return
-	}
-
-	var voteResult database.VoteResult
-	if err := database.DB.Where("vote_option_id = ?", voteOption.ID).FirstOrCreate(&voteResult).Error; err != nil {
-		c.JSON(500, gin.H{"msg": "数据库错误Orz"})
+	if err := database.DB.First(&voteOption, "id = ? AND topic_id = ?", query.VoteOptionID, query.TopicID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(404, gin.H{"msg": "投票选项不存在Orz"})
+		} else {
+			c.JSON(500, gin.H{"msg": "数据库错误Orz"})
+		}
 		return
 	}
 
-	voteResult.Count++
-	if err := database.DB.Save(&voteResult).Error; err != nil {
+	// 检查用户是否已经投过票
+	var voteRecord database.VoteRecord
+	if err := database.DB.First(&voteRecord, "topic_id = ? AND user_id = ?", query.TopicID, userID).Error; err == nil {
+		c.JSON(400, gin.H{"msg": "你已经投过票了Orz"})
+		return
+	}
+
+	// 创建投票记录
+	voteRecord = database.VoteRecord{
+		TopicID:      query.TopicID,
+		VoteOptionID: query.VoteOptionID,
+		UserID:       userID,
+	}
+	if err := database.DB.Create(&voteRecord).Error; err != nil {
+		c.JSON(500, gin.H{"msg": "数据库错误Orz"})
+		return
+	}
+
+	// 更新投票选项的投票数
+	voteOption.VoteNum++
+	if err := database.DB.Save(&voteOption).Error; err != nil {
 		c.JSON(500, gin.H{"msg": "数据库错误Orz"})
 		return
 	}
