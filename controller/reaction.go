@@ -49,9 +49,11 @@ func ReactionLike(c *gin.Context) {
 		return
 	}
 
+	//delta用于记录点赞数量变化
 	delta := 0
 	var like database.Like
 	var commit func()
+	// 使用.Unscoped()确保查询结果包含那些已经被软删除的记录
 	database.DB.Unscoped().Where("uid = ?", c.GetString("uid")).Where("obj = ?", query.Obj).Limit(1).Find(&like)
 	if like.ID == 0 { //新建
 		like = database.Like{
@@ -61,10 +63,11 @@ func ReactionLike(c *gin.Context) {
 		commit = func() { database.DB.Create(&like) }
 		delta = 1
 	} else if like.DeletedAt.Valid { //删除过 取消删除
+		// 删除该条目的软删除记录（.DeletedAt置空）
 		like.DeletedAt = gorm.DeletedAt{}
+		// .Unscoped().Save()确保即使记录被软删除，也能正确地保存更改。
 		commit = func() { database.DB.Unscoped().Save(like) }
 		delta = 1
-
 	} else { //取消点赞
 		commit = func() { database.DB.Delete(&like) }
 		delta = -1
@@ -74,7 +77,11 @@ func ReactionLike(c *gin.Context) {
 	var err error
 	switch obj_type {
 	case "comment":
+		// 每次点赞评论后，重新统计点赞数量
 		like_num, err = CommentOnLike(obj_id, delta, c.GetUint("uid_uint"))
+	case "topic":
+		// 每次点赞话题后，重新统计点赞数量
+		like_num, err = TopicOnLike(obj_id, delta, c.GetUint("uid_uint"))
 	}
 	if err != nil {
 		c.JSON(500, gin.H{"msg": "无效对象Orz"})
@@ -389,7 +396,7 @@ func CommentOnLike(id string, delta int, from_uid uint) (uint, error) {
 		return 0, err
 	}
 
-	// 通知
+	// TODO: 通知评论撰写者被点赞消息
 	if delta == 1 && from_uid != comment.Uid {
 		go func() {
 			// 获取顶级对象 处理子评论问题
@@ -403,8 +410,32 @@ func CommentOnLike(id string, delta int, from_uid uint) (uint, error) {
 			}
 		}()
 	}
+	// 已找到顶级评论，通知评论者逻辑如何实现，轮询？
 
 	return comment.LikeNum, nil
+}
+
+// TODO: 点赞话题
+func TopicOnLike(id string, delta int, from_uid uint) (uint, error) {
+	var topic database.Topic
+	if err := database.DB.First(&topic, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(404, gin.H{"msg": "话题不存在Orz"})
+		} else {
+			c.JSON(500, gin.H{"msg": "数据库错误Orz"})
+		}
+		return
+	}
+
+	topic.LikeNum = uint(int(topic.LikeNum) + delta)
+	if err := database.DB.Save(&topic).Error; err != nil {
+		return 0, err
+	}
+
+	// TODO: 通知话题撰写者被点赞消息
+	// 轮询？
+
+	return topic.LikeNum, nil
 }
 
 // 评论评论

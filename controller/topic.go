@@ -381,27 +381,27 @@ func TopicDelete(c *gin.Context) {
 	c.JSON(200, gin.H{"msg": "删除成功OvO"})
 }
 
-// 点赞话题
-func TopicLike(c *gin.Context) {
-	var topic database.Topic
-	id := c.Param("id")
-	if err := database.DB.First(&topic, "id = ?", id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(404, gin.H{"msg": "话题不存在Orz"})
-		} else {
-			c.JSON(500, gin.H{"msg": "数据库错误Orz"})
-		}
-		return
-	}
+// 点赞话题（notice: 已转移到reaction.go中实现）
+// func TopicLike(c *gin.Context) {
+// 	var topic database.Topic
+// 	id := c.Param("id")
+// 	if err := database.DB.First(&topic, "id = ?", id).Error; err != nil {
+// 		if errors.Is(err, gorm.ErrRecordNotFound) {
+// 			c.JSON(404, gin.H{"msg": "话题不存在Orz"})
+// 		} else {
+// 			c.JSON(500, gin.H{"msg": "数据库错误Orz"})
+// 		}
+// 		return
+// 	}
 
-	topic.LikeNum++
-	if err := database.DB.Save(&topic).Error; err != nil {
-		c.JSON(500, gin.H{"msg": "数据库错误Orz"})
-		return
-	}
+// 	topic.LikeNum++
+// 	if err := database.DB.Save(&topic).Error; err != nil {
+// 		c.JSON(500, gin.H{"msg": "数据库错误Orz"})
+// 		return
+// 	}
 
-	c.JSON(200, gin.H{"msg": "点赞成功OvO"})
-}
+// 	c.JSON(200, gin.H{"msg": "点赞成功OvO"})
+// }
 
 // TODO: 投票接口尚未完成 2024-11-12
 // 投票请求接口
