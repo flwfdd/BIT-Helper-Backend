@@ -516,7 +516,6 @@ func TopicDelete(c *gin.Context) {
 
 // 投票请求接口
 type VoteTopicQuery struct {
-	TopicID      uint `json:"topic_id" binding:"required"`       // 话题ID
 	VoteOptionID uint `json:"vote_option_id" binding:"required"` // 投票选项ID
 }
 
@@ -528,12 +527,20 @@ func VoteTopic(c *gin.Context) {
 		return
 	}
 
+	// 从URL参数中获取话题ID
+	id := c.Param("id")
+	topicID, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		c.JSON(400, gin.H{"msg": "无效的话题IDOrz"})
+		return
+	}
+
 	// 获取当前用户ID
 	userID := c.GetUint("uid_uint")
 
 	// 检查话题是否存在
 	var topic database.Topic
-	if err := database.DB.First(&topic, "id = ?", query.TopicID).Error; err != nil {
+	if err := database.DB.First(&topic, "id = ?", topicID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(404, gin.H{"msg": "话题不存在Orz"})
 		} else {
@@ -550,7 +557,7 @@ func VoteTopic(c *gin.Context) {
 
 	// 检查投票选项是否存在
 	var voteOption database.VoteOption
-	if err := database.DB.First(&voteOption, "id = ? AND topic_id = ?", query.VoteOptionID, query.TopicID).Error; err != nil {
+	if err := database.DB.First(&voteOption, "id = ? AND topic_id = ?", query.VoteOptionID, topicID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(404, gin.H{"msg": "投票选项不存在Orz"})
 		} else {
@@ -561,14 +568,14 @@ func VoteTopic(c *gin.Context) {
 
 	// 检查用户是否已经投过票
 	var voteRecord database.VoteRecord
-	if err := database.DB.First(&voteRecord, "topic_id = ? AND user_id = ?", query.TopicID, userID).Error; err == nil {
+	if err := database.DB.First(&voteRecord, "topic_id = ? AND user_id = ?", topicID, userID).Error; err == nil {
 		c.JSON(400, gin.H{"msg": "你已经投过票了Orz"})
 		return
 	}
 
 	// 创建投票记录
 	voteRecord = database.VoteRecord{
-		TopicID:      query.TopicID,
+		TopicID:      uint(topicID),
 		VoteOptionID: query.VoteOptionID,
 		UserID:       userID,
 	}
