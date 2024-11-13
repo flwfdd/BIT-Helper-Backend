@@ -75,7 +75,7 @@ func GetTopicAPI(topic database.Topic, c *gin.Context) TopicAPI {
 	return TopicAPI{
 		Topic:         topic,
 		User:          GetUserAPI(int(topic.Uid)),
-		Images:        GetImageAPIArr(split(topic.Image)),
+		Images:        GetImageAPIArr(split(topic.Images)),
 		Tags:          tagStrings,
 		Time:          topic.CreatedAt,
 		Own:           (c.GetUint("uid_uint") == topic.Uid),
@@ -308,7 +308,7 @@ func TopicPost(c *gin.Context) {
 		Uid:     c.GetUint("uid_uint"), // 从上下文中获取 uid_uint 的值。这个值通常是在请求处理过程中【通过中间件】或其他方式设置到上下文中的，而【不是直接从请求体】中获取。
 		Title:   query.Title,
 		Content: query.Content,
-		Image:   strings.Join(query.ImageMids, " "), // 在每张图片的mid之间加上空格，向数据库传递的是一个字符串
+		Images:  strings.Join(query.ImageMids, " "), // 在每张图片的mid之间加上空格，向数据库传递的是一个字符串
 		IsVote:  query.IsVote,                       // 设置是否为投票话题
 	}
 
@@ -392,7 +392,7 @@ func TopicPut(c *gin.Context) {
 		topic.Content = query.Content
 	}
 	// 每次修改【必须】更新图片信息
-	topic.Image = strings.Join(query.ImageMids, " ")
+	topic.Images = strings.Join(query.ImageMids, " ")
 	// 更新是否为投票话题
 	topic.IsVote = query.IsVote
 
