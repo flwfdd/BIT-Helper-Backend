@@ -22,13 +22,15 @@ import (
 // 所有话题的API格式（返回给前端的数据格式）
 type TopicAPI struct {
 	database.Topic
-	User    UserAPI               `json:"user"`
-	Images  []ImageAPI            `json:"images"`
-	Tags    []string              `json:"tags"`
-	Time    time.Time             `json:"time"`
-	Own     bool                  `json:"own"`     // 标识是否为自己发布的话题
-	Like    bool                  `json:"liked"`   // 标识是否已经为该条话题点赞
-	Options []database.VoteOption `json:"options"` // 投票选项及票数
+	User          UserAPI               `json:"user"`
+	Images        []ImageAPI            `json:"images"`
+	Tags          []string              `json:"tags"`
+	Time          time.Time             `json:"time"`
+	Own           bool                  `json:"own"`          // 标识是否为自己发布的话题
+	Like          bool                  `json:"like"`         // 标识是否已经为该条话题点赞
+	Vote          bool                  `json:"vote"`         // 标识是否已经为该话题投票
+	VotedOptionID uint                  `json:"voted_option"` // 标识用户已经对哪个选项进行投票
+	Options       []database.VoteOption `json:"options"`      // 投票选项及票数
 }
 
 // 用于分割字符串（处理空元素的情况）
@@ -61,16 +63,26 @@ func GetTopicAPI(topic database.Topic, c *gin.Context) TopicAPI {
 		database.DB.Where("topic_id = ?", topic.ID).Find(&voteOptions)
 	}
 
+	// 检查用户是否已投票
+	var voteRecord database.VoteRecord
+	voted := false
+	votedOptionID := uint(0)
+	if err := database.DB.Where("topic_id = ? AND user_id = ?", topic.ID, c.GetUint("uid_uint")).First(&voteRecord).Error; err == nil {
+		voted = true
+		votedOptionID = voteRecord.VoteOptionID
+	}
+
 	return TopicAPI{
-		Topic:  topic,
-		User:   GetUserAPI(int(topic.Uid)),
-		Images: GetImageAPIArr(split(topic.Image)),
-		Tags:   tagStrings,
-		// 期望展示的时候是按照话题创建时间展示的
-		Time:    topic.CreatedAt,
-		Own:     (c.GetUint("uid_uint") == topic.Uid),
-		Like:    CheckLike(Obj, c.GetUint("uid_uint")),
-		Options: voteOptions,
+		Topic:         topic,
+		User:          GetUserAPI(int(topic.Uid)),
+		Images:        GetImageAPIArr(split(topic.Image)),
+		Tags:          tagStrings,
+		Time:          topic.CreatedAt,
+		Own:           (c.GetUint("uid_uint") == topic.Uid),
+		Like:          CheckLike(Obj, c.GetUint("uid_uint")),
+		Vote:          voted,
+		VotedOptionID: votedOptionID,
+		Options:       voteOptions,
 	}
 }
 
