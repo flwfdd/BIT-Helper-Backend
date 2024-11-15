@@ -258,7 +258,7 @@ func TopicList(c *gin.Context) {
 	}
 
 	// 返回查询结果
-	c.JSON(200, topics)
+	// c.JSON(200, topics)
 
 	// 若查询结果为空，.find()返回空列表，不处理
 
@@ -269,8 +269,20 @@ func TopicList(c *gin.Context) {
 	}
 
 	// 获取该类型的所有标签
+	var giventypetopics []database.Topic
+	database.DB.Where("type = ?", topicType).Find(&giventypetopics)
+
+	// 获取所有符合条件的 topic_id 列表
+	var topicIDs []uint
+	for _, topic := range giventypetopics {
+		topicIDs = append(topicIDs, topic.ID)
+	}
+
+	// 根据 topic_id 列表在 TopicTag 表中查找对应的标签
 	var allTags []database.TopicTag
-	database.DB.Where("type = ?", topicType).Find(&allTags)
+	database.DB.Where("topic_id IN (?)", topicIDs).Find(&allTags)
+
+	// 整理所有的标签
 	tagStrings := make([]string, len(allTags))
 	for i, tag := range allTags {
 		tagStrings[i] = tag.Tag

@@ -116,7 +116,7 @@ type Topic struct {
 	Images     string  `json:"images"`                       // 主题图片列表
 	IsVote     bool    `gorm:"default:false" json:"is_vote"` // 是否为投票话题
 	CommentNum uint    `gorm:"default:0" json:"comment_num"` // TODO: 评论数，注意每次有用户评论都需要+1
-	LikeNum    uint    `gorm:"default:0" json:"like_num"`    // TODO: 点赞数, 注意每次有用户点赞都需要+1（在topic.go中单独实现，暂不记录点赞人）
+	LikeNum    uint    `gorm:"default:0" json:"like_num"`    // TODO: 点赞数, 注意每次有用户点赞都需要+1
 	AvgRate    float32 `gorm:"default:0" json:"avg_rate"`    // 平均评分，每次有用户评论都需要更新一次
 }
 
