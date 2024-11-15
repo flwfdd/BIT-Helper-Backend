@@ -84,7 +84,7 @@ type Chats struct {
 // 评论
 type Comment struct {
 	Base
-	Tid        uint   `gorm:"not null;index" json:"tid"`      //评论话题id
+	Obj        string `gorm:"not null;index" json:"obj"`      //评论对象
 	Uid        uint   `gorm:"not null;index" json:"uid"`      //用户id
 	Text       string `gorm:"not null" json:"text"`           //评论内容
 	Anonymous  bool   `gorm:"default:false" json:"anonymous"` //是否匿名
@@ -158,7 +158,7 @@ func Init() {
 	// 	&User{}, &Image{}, &Goods{}, &Order{}, &Chats{}, &Comment{}, &Like{},
 	// )
 	err = db.AutoMigrate(
-		&User{}, &Image{}, &Goods{}, &Order{}, &Chats{}, &Comment{}, &Like{}, &Topic{}, &VoteOption{}, &VoteResult{}, &TopicTag{},
+		&User{}, &Image{}, &Goods{}, &Order{}, &Chats{}, &Comment{}, &Like{}, &Topic{}, &VoteOption{}, &VoteRecord{}, &TopicTag{},
 	)
 
 	// -------------------------------------------------------

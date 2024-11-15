@@ -21,8 +21,8 @@ import (
 
 // 获取对象的类型和对象的ID
 func getTypeID(obj string) (string, string) {
-	if obj[:6] == "topic" {
-		return "topic", obj[6:]
+	if obj[:5] == "topic" {
+		return "topic", obj[5:]
 	}
 	if obj[:7] == "comment" {
 		return "comment", obj[7:]
@@ -78,10 +78,10 @@ func ReactionLike(c *gin.Context) {
 	switch obj_type {
 	case "comment":
 		// 每次点赞评论后，重新统计点赞数量
-		like_num, err = CommentOnLike(obj_id, delta, c.GetUint("uid_uint"))
+		like_num, err = CommentOnLike(obj_id, delta)
 	case "topic":
 		// 每次点赞话题后，重新统计点赞数量
-		like_num, err = TopicOnLike(obj_id, delta, c.GetUint("uid_uint"))
+		like_num, err = TopicOnLike(obj_id, delta)
 	}
 	if err != nil {
 		c.JSON(500, gin.H{"msg": "无效对象Orz"})
@@ -319,7 +319,9 @@ func ReactionComment(c *gin.Context) {
 	var err error
 	switch obj_type {
 	case "comment":
-		_, err = CommentOnComment(obj_id, 1, c.GetUint("uid_uint"), query.Anonymous, query.ReplyObj, query.Text)
+		_, err = CommentOnComment(obj_id, 1)
+	case "topic":
+		_, err = topicOnComment(obj_id, 1)
 	}
 	if err != nil {
 		c.JSON(500, gin.H{"msg": "无效对象Orz"})
@@ -385,7 +387,7 @@ func ReactionCommentList(c *gin.Context) {
 }
 
 // 点赞评论
-func CommentOnLike(id string, delta int, from_uid uint) (uint, error) {
+func CommentOnLike(id string, delta int) (uint, error) {
 	var comment database.Comment
 	database.DB.Limit(1).Find(&comment, "id = ?", id)
 	if comment.ID == 0 {
@@ -396,50 +398,39 @@ func CommentOnLike(id string, delta int, from_uid uint) (uint, error) {
 		return 0, err
 	}
 
-	// TODO: 通知评论撰写者被点赞消息
-	if delta == 1 && from_uid != comment.Uid {
-		go func() {
-			// 获取顶级对象 处理子评论问题
-			link_obj := comment.Obj
-			for strings.HasPrefix(link_obj, "comment") {
-				var parent_comment database.Comment
-				if err := database.DB.Limit(1).Find(&parent_comment, "id = ?", strings.TrimPrefix(comment.Obj, "comment")).Error; err != nil || parent_comment.ID == 0 {
-					return
-				}
-				link_obj = parent_comment.Obj
-			}
-		}()
-	}
-	// 已找到顶级评论，通知评论者逻辑如何实现，轮询？
-
 	return comment.LikeNum, nil
 }
 
-// TODO: 点赞话题
-func TopicOnLike(id string, delta int, from_uid uint) (uint, error) {
+// 点赞话题
+func TopicOnLike(id string, delta int) (uint, error) {
 	var topic database.Topic
-	if err := database.DB.First(&topic, "id = ?", id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(404, gin.H{"msg": "话题不存在Orz"})
-		} else {
-			c.JSON(500, gin.H{"msg": "数据库错误Orz"})
-		}
-		return
+	database.DB.Limit(1).Find(&topic, "id = ?", id)
+	if topic.ID == 0 {
+		return 0, errors.New("话题不存在Orz")
 	}
-
 	topic.LikeNum = uint(int(topic.LikeNum) + delta)
 	if err := database.DB.Save(&topic).Error; err != nil {
 		return 0, err
 	}
-
-	// TODO: 通知话题撰写者被点赞消息
-	// 轮询？
-
 	return topic.LikeNum, nil
 }
 
+// 评论话题
+func topicOnComment(id string, delta int) (uint, error) {
+	var topic database.Topic
+	database.DB.Limit(1).Find(&topic, "id = ?", id)
+	if topic.ID == 0 {
+		return 0, errors.New("话题不存在Orz")
+	}
+	topic.CommentNum = uint(int(topic.CommentNum) + delta)
+	if err := database.DB.Save(&topic).Error; err != nil {
+		return 0, err
+	}
+	return topic.CommentNum, nil
+}
+
 // 评论评论
-func CommentOnComment(id string, delta int, from_uid uint, from_anonymous bool, reply_obj string, content string) (uint, error) {
+func CommentOnComment(id string, delta int) (uint, error) {
 	var comment database.Comment
 	database.DB.Limit(1).Find(&comment, "id = ?", id)
 	if comment.ID == 0 {
@@ -449,35 +440,6 @@ func CommentOnComment(id string, delta int, from_uid uint, from_anonymous bool, 
 	if err := database.DB.Save(&comment).Error; err != nil {
 		return 0, err
 	}
-
-	// 通知
-	if delta == 1 {
-		go func() {
-			// 确定通知对象
-			to_uid := comment.Uid
-			if strings.HasPrefix(reply_obj, "comment") {
-				var reply_comment database.Comment
-				if err := database.DB.Limit(1).Find(&reply_comment, "id = ?", strings.TrimPrefix(reply_obj, "comment")).Error; err != nil || reply_comment.ID == 0 {
-					return
-				}
-				to_uid = reply_comment.Uid
-			}
-			if to_uid == from_uid {
-				return
-			}
-
-			// 获取顶级对象 处理子评论问题
-			link_obj := comment.Obj
-			for strings.HasPrefix(link_obj, "comment") {
-				var parent_comment database.Comment
-				if err := database.DB.Limit(1).Find(&parent_comment, "id = ?", strings.TrimPrefix(comment.Obj, "comment")).Error; err != nil || parent_comment.ID == 0 {
-					return
-				}
-				link_obj = parent_comment.Obj
-			}
-		}()
-	}
-
 	return comment.CommentNum, nil
 }
 
@@ -502,9 +464,9 @@ func ReactionCommentDelete(c *gin.Context) {
 	obj_type, obj_id := getTypeID(comment.Obj)
 	switch obj_type {
 	case "comment":
-		_, err = CommentOnComment(obj_id, -1, 0, true, "", "")
-		//case "topic":
-		//	_, err = topicOnComment(obj_id, -1, c.GetUint("uid_uint"), true, "")
+		_, err = CommentOnComment(obj_id, -1)
+	case "topic":
+		_, err = topicOnComment(obj_id, -1)
 	}
 	if err != nil {
 		c.JSON(500, gin.H{"msg": "无效对象Orz"})
