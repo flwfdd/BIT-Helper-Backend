@@ -21,10 +21,11 @@ import (
 
 // 获取对象的类型和对象的ID
 func getTypeID(obj string) (string, string) {
-	if obj[:5] == "topic" {
+	l := len(obj)
+	if l >= 5 && obj[:5] == "topic" {
 		return "topic", obj[5:]
 	}
-	if obj[:7] == "comment" {
+	if l >= 7 && obj[:7] == "comment" {
 		return "comment", obj[7:]
 	}
 	return "", ""
@@ -314,6 +315,9 @@ func ReactionComment(c *gin.Context) {
 			return
 		}
 	}
+	if query.Rate > 5 {
+		query.Rate = 5
+	}
 
 	// 评论数+1
 	var err error
@@ -424,7 +428,11 @@ func topicOnComment(id string, delta int, rate int) (uint, error) {
 	}
 	totalRate := topic.AvgRate*float32(topic.CommentNum) + float32(rate)
 	topic.CommentNum = uint(int(topic.CommentNum) + delta)
-	topic.AvgRate = totalRate / float32(topic.CommentNum)
+	if topic.CommentNum == 0 {
+		topic.AvgRate = 0
+	} else {
+		topic.AvgRate = totalRate / float32(topic.CommentNum)
+	}
 	if topic.AvgRate < 0 {
 		topic.AvgRate = 0
 	}
