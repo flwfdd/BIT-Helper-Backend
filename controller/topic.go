@@ -67,7 +67,16 @@ func GetTopicAPI(topic database.Topic, c *gin.Context) TopicAPI {
 	var voteRecord database.VoteRecord
 	voted := false
 	votedOptionID := uint(0)
-	if err := database.DB.Where("topic_id = ? AND user_id = ?", topic.ID, c.GetUint("uid_uint")).First(&voteRecord).Error; err == nil {
+	if err := database.DB.Where("topic_id = ? AND user_id = ?", topic.ID, c.GetUint("uid_uint")).First(&voteRecord).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// 未找到记录，不打印错误信息
+			voted = false
+		} else {
+			// 其他错误，打印错误信息
+			c.JSON(500, gin.H{"msg": "数据库错误Orz"})
+			return TopicAPI{}
+		}
+	} else {
 		voted = true
 		votedOptionID = voteRecord.VoteOptionID
 	}
