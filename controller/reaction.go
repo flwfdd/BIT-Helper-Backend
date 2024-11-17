@@ -321,7 +321,7 @@ func ReactionComment(c *gin.Context) {
 	case "comment":
 		_, err = CommentOnComment(obj_id, 1)
 	case "topic":
-		_, err = topicOnComment(obj_id, 1)
+		_, err = topicOnComment(obj_id, 1, int(query.Rate))
 	}
 	if err != nil {
 		c.JSON(500, gin.H{"msg": "无效对象Orz"})
@@ -416,13 +416,18 @@ func TopicOnLike(id string, delta int) (uint, error) {
 }
 
 // 评论话题
-func topicOnComment(id string, delta int) (uint, error) {
+func topicOnComment(id string, delta int, rate int) (uint, error) {
 	var topic database.Topic
 	database.DB.Limit(1).Find(&topic, "id = ?", id)
 	if topic.ID == 0 {
 		return 0, errors.New("话题不存在Orz")
 	}
+	totalRate := topic.AvgRate*float32(topic.CommentNum) + float32(rate)
 	topic.CommentNum = uint(int(topic.CommentNum) + delta)
+	topic.AvgRate = totalRate / float32(topic.CommentNum)
+	if topic.AvgRate < 0 {
+		topic.AvgRate = 0
+	}
 	if err := database.DB.Save(&topic).Error; err != nil {
 		return 0, err
 	}
@@ -466,7 +471,7 @@ func ReactionCommentDelete(c *gin.Context) {
 	case "comment":
 		_, err = CommentOnComment(obj_id, -1)
 	case "topic":
-		_, err = topicOnComment(obj_id, -1)
+		_, err = topicOnComment(obj_id, -1, -int(comment.Rate))
 	}
 	if err != nil {
 		c.JSON(500, gin.H{"msg": "无效对象Orz"})
