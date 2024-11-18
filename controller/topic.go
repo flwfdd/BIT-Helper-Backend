@@ -31,6 +31,7 @@ type TopicAPI struct {
 	Vote          bool                  `json:"vote"`         // 标识是否已经为该话题投票
 	VotedOptionID uint                  `json:"voted_option"` // 标识用户已经对哪个选项进行投票
 	Options       []database.VoteOption `json:"options"`      // 投票选项及票数
+	AI            string                `json:"ai"`           // 话题的AI总结
 }
 
 // 用于分割字符串（处理空元素的情况）
@@ -92,6 +93,7 @@ func GetTopicAPI(topic database.Topic, c *gin.Context) TopicAPI {
 		Vote:          voted,
 		VotedOptionID: votedOptionID,
 		Options:       voteOptions,
+		AI:            topic.AI,
 	}
 }
 

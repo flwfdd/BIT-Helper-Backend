@@ -1,7 +1,7 @@
 /*
  * @Author: flwfdd
  * @Date: 2024-06-06 16:42:56
- * @LastEditTime: 2024-06-11 14:50:20
+ * @LastEditTime: 2024-11-18 00:00:05
  * @Description:
  * _(:з」∠)_
  */
@@ -118,6 +118,7 @@ type Topic struct {
 	CommentNum uint    `gorm:"default:0" json:"comment_num"` // TODO: 评论数，注意每次有用户评论都需要+1
 	LikeNum    uint    `gorm:"default:0" json:"like_num"`    // TODO: 点赞数, 注意每次有用户点赞都需要+1
 	AvgRate    float32 `gorm:"default:0" json:"avg_rate"`    // 平均评分，每次有用户评论都需要更新一次
+	AI         string  `json:"ai"`                           // AI总结
 }
 
 type VoteOption struct {

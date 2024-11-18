@@ -1,7 +1,7 @@
 /*
  * @Author: flwfdd
  * @Date: 2024-06-06 15:59:19
- * @LastEditTime: 2024-06-07 12:27:10
+ * @LastEditTime: 2024-11-18 00:38:09
  * @Description:
  * _(:з」∠)_
  */
@@ -40,6 +40,7 @@ var Config = struct {
 	PageSize           int    `yaml:"page_size"`
 	CommentPreviewSize int    `yaml:"comment_preview_size"`
 	ReleaseMode        bool   `yaml:"release_mode"`
+	ZhipuKey           string `yaml:"zhipu_key"`
 }{}
 
 func Init() {
