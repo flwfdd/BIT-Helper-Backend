@@ -9,6 +9,7 @@ package controller
 
 import (
 	"BIT-Helper/database"
+	"BIT-Helper/util/ai"
 	"BIT-Helper/util/config"
 	"errors"
 	"strconv"
@@ -357,6 +358,8 @@ func TopicPost(c *gin.Context) {
 		}
 	}
 
+	go TopicAI(topic)
+
 	c.JSON(200, GetTopicAPI(topic, c))
 }
 
@@ -470,6 +473,8 @@ func TopicPut(c *gin.Context) {
 			database.DB.Where("vote_option_id = ?", option.ID).Delete(&database.VoteRecord{})
 		}
 	}
+
+	go TopicAI(topic)
 
 	c.JSON(200, GetTopicAPI(topic, c))
 }
@@ -614,5 +619,36 @@ func VoteTopic(c *gin.Context) {
 		return
 	}
 
+	go TopicAI(topic)
+
 	c.JSON(200, gin.H{"msg": "投票成功OvO"})
+}
+
+// AI生成话题总结
+func TopicAI(topic database.Topic) error {
+	// 获取话题的所有评论内容
+	var comments []database.Comment
+	if err := database.DB.Where("obj = ?", "topic"+strconv.Itoa(int(topic.ID))).Find(&comments).Error; err != nil {
+		return err
+	}
+
+	// 构造生成摘要的Prompt
+	prompt := "请根据以下话题及其评论内容生成一段简洁的摘要，要求包含话题和评论的简介，请直接回复摘要内容：\n"
+	prompt += "话题标题：" + topic.Title + "\n"
+	prompt += "话题内容：" + topic.Content + "\n"
+	prompt += "评论内容：\n"
+	for _, comment := range comments {
+		prompt += "- " + comment.Text + "\n"
+	}
+
+	// 调用AI接口
+	aiRes, err := ai.QueryAI(prompt)
+	if err != nil {
+		return err
+	}
+	topic.AI = aiRes
+	if err := database.DB.Save(&topic).Error; err != nil {
+		return err
+	}
+	return nil
 }
